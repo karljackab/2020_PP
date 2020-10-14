@@ -45,14 +45,15 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
   __pp_vec_int all_one_int = _pp_vset_int(1);
   __pp_vec_int all_zero_int = _pp_vset_int(0);
   __pp_vec_float all_99_float = _pp_vset_float(9.999999f);
+  __pp_mask all_one_mask = _pp_init_ones();
   for (int i = 0; i < N; i += VECTOR_WIDTH)
   {
     __pp_vec_float cur_x, result=_pp_vset_float(1);
     __pp_vec_int cur_y, count;
     __pp_mask cur_mask=_pp_init_ones(0), tmp_mask=_pp_init_ones(0), whole_mask=_pp_init_ones(i+VECTOR_WIDTH<N?VECTOR_WIDTH:N-i);
 
-    _pp_vload_float(cur_x, values+i, whole_mask);
-    _pp_vload_int(cur_y, exponents+i, whole_mask);
+    _pp_vload_float(cur_x, values+i, all_one_mask);
+    _pp_vload_int(cur_y, exponents+i, all_one_mask);
 
     _pp_veq_int(cur_mask, cur_y, all_zero_int, whole_mask);
     cur_mask = _pp_mask_not(cur_mask);
