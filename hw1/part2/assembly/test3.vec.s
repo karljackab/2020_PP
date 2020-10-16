@@ -1,45 +1,38 @@
 	.text
-	.file	"test1.cpp"
+	.file	"test3.cpp"
 	.section	.rodata.cst8,"aM",@progbits,8
-	.p2align	3               # -- Begin function _Z5test1PfS_S_i
+	.p2align	3               # -- Begin function _Z5test3Pdi
 .LCPI0_0:
 	.quad	4472406533629990549     # double 1.0000000000000001E-9
 	.text
-	.globl	_Z5test1PfS_S_i
+	.globl	_Z5test3Pdi
 	.p2align	4, 0x90
-	.type	_Z5test1PfS_S_i,@function
-_Z5test1PfS_S_i:                        # @_Z5test1PfS_S_i
+	.type	_Z5test3Pdi,@function
+_Z5test3Pdi:                            # @_Z5test3Pdi
 	.cfi_startproc
 # %bb.0:
 	pushq	%r15
 	.cfi_def_cfa_offset 16
 	pushq	%r14
 	.cfi_def_cfa_offset 24
-	pushq	%r13
-	.cfi_def_cfa_offset 32
-	pushq	%r12
-	.cfi_def_cfa_offset 40
 	pushq	%rbx
-	.cfi_def_cfa_offset 48
+	.cfi_def_cfa_offset 32
 	subq	$32, %rsp
-	.cfi_def_cfa_offset 80
-	.cfi_offset %rbx, -48
-	.cfi_offset %r12, -40
-	.cfi_offset %r13, -32
+	.cfi_def_cfa_offset 64
+	.cfi_offset %rbx, -32
 	.cfi_offset %r14, -24
 	.cfi_offset %r15, -16
-	movq	%rdx, %r14
-	movq	%rsi, %r15
 	movq	%rdi, %rbx
-	leaq	8(%rsp), %rsi
+	movq	%rsp, %rsi
 	movl	$1, %edi
 	callq	clock_gettime
 	testl	%eax, %eax
 	jne	.LBB0_7
 # %bb.1:
-	movq	8(%rsp), %r13
-	movq	16(%rsp), %r12
+	movq	(%rsp), %r15
+	movq	8(%rsp), %r14
 	xorl	%eax, %eax
+	xorpd	%xmm0, %xmm0
 	.p2align	4, 0x90
 .LBB0_2:                                # =>This Loop Header: Depth=1
                                         #     Child Loop BB0_3 Depth 2
@@ -47,19 +40,15 @@ _Z5test1PfS_S_i:                        # @_Z5test1PfS_S_i
 	.p2align	4, 0x90
 .LBB0_3:                                #   Parent Loop BB0_2 Depth=1
                                         # =>  This Inner Loop Header: Depth=2
-	vmovaps	(%rbx,%rcx,4), %ymm0
-	vmovaps	32(%rbx,%rcx,4), %ymm1
-	vmovaps	64(%rbx,%rcx,4), %ymm2
-	vmovaps	96(%rbx,%rcx,4), %ymm3
-	vaddps	(%r15,%rcx,4), %ymm0, %ymm0
-	vaddps	32(%r15,%rcx,4), %ymm1, %ymm1
-	vaddps	64(%r15,%rcx,4), %ymm2, %ymm2
-	vaddps	96(%r15,%rcx,4), %ymm3, %ymm3
-	vmovaps	%ymm0, (%r14,%rcx,4)
-	vmovaps	%ymm1, 32(%r14,%rcx,4)
-	vmovaps	%ymm2, 64(%r14,%rcx,4)
-	vmovaps	%ymm3, 96(%r14,%rcx,4)
-	addq	$32, %rcx
+	addsd	(%rbx,%rcx,8), %xmm0
+	addsd	8(%rbx,%rcx,8), %xmm0
+	addsd	16(%rbx,%rcx,8), %xmm0
+	addsd	24(%rbx,%rcx,8), %xmm0
+	addsd	32(%rbx,%rcx,8), %xmm0
+	addsd	40(%rbx,%rcx,8), %xmm0
+	addsd	48(%rbx,%rcx,8), %xmm0
+	addsd	56(%rbx,%rcx,8), %xmm0
+	addq	$8, %rcx
 	cmpq	$1024, %rcx             # imm = 0x400
 	jne	.LBB0_3
 # %bb.4:                                #   in Loop: Header=BB0_2 Depth=1
@@ -67,28 +56,29 @@ _Z5test1PfS_S_i:                        # @_Z5test1PfS_S_i
 	cmpl	$20000000, %eax         # imm = 0x1312D00
 	jne	.LBB0_2
 # %bb.5:
-	leaq	8(%rsp), %rsi
+	movsd	%xmm0, 24(%rsp)         # 8-byte Spill
+	movq	%rsp, %rsi
 	movl	$1, %edi
-	vzeroupper
 	callq	clock_gettime
 	testl	%eax, %eax
 	jne	.LBB0_7
 # %bb.6:
-	movq	8(%rsp), %rax
-	subq	%r13, %rax
-	movq	16(%rsp), %rcx
-	subq	%r12, %rcx
-	vcvtsi2sd	%rax, %xmm4, %xmm0
-	vcvtsi2sd	%rcx, %xmm4, %xmm1
-	vmulsd	.LCPI0_0(%rip), %xmm1, %xmm1
-	vaddsd	%xmm0, %xmm1, %xmm0
-	vmovsd	%xmm0, 24(%rsp)         # 8-byte Spill
+	movq	(%rsp), %rax
+	subq	%r15, %rax
+	movq	8(%rsp), %rcx
+	subq	%r14, %rcx
+	xorps	%xmm0, %xmm0
+	cvtsi2sd	%rax, %xmm0
+	cvtsi2sd	%rcx, %xmm1
+	mulsd	.LCPI0_0(%rip), %xmm1
+	addsd	%xmm0, %xmm1
+	movsd	%xmm1, 16(%rsp)         # 8-byte Spill
 	movl	$_ZSt4cout, %edi
 	movl	$.L.str, %esi
 	movl	$47, %edx
 	callq	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l
 	movl	$_ZSt4cout, %edi
-	vmovsd	24(%rsp), %xmm0         # 8-byte Reload
+	movsd	16(%rsp), %xmm0         # 8-byte Reload
                                         # xmm0 = mem[0],zero
 	callq	_ZNSo9_M_insertIdEERSoT_
 	movq	%rax, %rbx
@@ -111,13 +101,11 @@ _Z5test1PfS_S_i:                        # @_Z5test1PfS_S_i
 	movl	$2, %edx
 	movq	%rax, %rdi
 	callq	_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l
+	movsd	24(%rsp), %xmm0         # 8-byte Reload
+                                        # xmm0 = mem[0],zero
 	addq	$32, %rsp
-	.cfi_def_cfa_offset 48
-	popq	%rbx
-	.cfi_def_cfa_offset 40
-	popq	%r12
 	.cfi_def_cfa_offset 32
-	popq	%r13
+	popq	%rbx
 	.cfi_def_cfa_offset 24
 	popq	%r14
 	.cfi_def_cfa_offset 16
@@ -125,20 +113,20 @@ _Z5test1PfS_S_i:                        # @_Z5test1PfS_S_i
 	.cfi_def_cfa_offset 8
 	retq
 .LBB0_7:
-	.cfi_def_cfa_offset 80
+	.cfi_def_cfa_offset 64
 	movl	$.L.str.4, %edi
 	movl	$.L.str.5, %esi
 	movl	$.L__PRETTY_FUNCTION__._ZL7gettimev, %ecx
 	movl	$75, %edx
 	callq	__assert_fail
 .Lfunc_end0:
-	.size	_Z5test1PfS_S_i, .Lfunc_end0-_Z5test1PfS_S_i
+	.size	_Z5test3Pdi, .Lfunc_end0-_Z5test3Pdi
 	.cfi_endproc
                                         # -- End function
 	.section	.text.startup,"ax",@progbits
-	.p2align	4, 0x90         # -- Begin function _GLOBAL__sub_I_test1.cpp
-	.type	_GLOBAL__sub_I_test1.cpp,@function
-_GLOBAL__sub_I_test1.cpp:               # @_GLOBAL__sub_I_test1.cpp
+	.p2align	4, 0x90         # -- Begin function _GLOBAL__sub_I_test3.cpp
+	.type	_GLOBAL__sub_I_test3.cpp,@function
+_GLOBAL__sub_I_test3.cpp:               # @_GLOBAL__sub_I_test3.cpp
 	.cfi_startproc
 # %bb.0:
 	pushq	%rax
@@ -152,7 +140,7 @@ _GLOBAL__sub_I_test1.cpp:               # @_GLOBAL__sub_I_test1.cpp
 	.cfi_def_cfa_offset 8
 	jmp	__cxa_atexit            # TAILCALL
 .Lfunc_end1:
-	.size	_GLOBAL__sub_I_test1.cpp, .Lfunc_end1-_GLOBAL__sub_I_test1.cpp
+	.size	_GLOBAL__sub_I_test3.cpp, .Lfunc_end1-_GLOBAL__sub_I_test3.cpp
 	.cfi_endproc
                                         # -- End function
 	.type	_ZStL8__ioinit,@object  # @_ZStL8__ioinit
@@ -162,7 +150,7 @@ _GLOBAL__sub_I_test1.cpp:               # @_GLOBAL__sub_I_test1.cpp
 	.type	.L.str,@object          # @.str
 	.section	.rodata.str1.1,"aMS",@progbits,1
 .L.str:
-	.asciz	"Elapsed execution time of the loop in test1():\n"
+	.asciz	"Elapsed execution time of the loop in test3():\n"
 	.size	.L.str, 48
 
 	.type	.L.str.1,@object        # @.str.1
@@ -197,11 +185,11 @@ _GLOBAL__sub_I_test1.cpp:               # @_GLOBAL__sub_I_test1.cpp
 
 	.section	.init_array,"aw",@init_array
 	.p2align	3
-	.quad	_GLOBAL__sub_I_test1.cpp
+	.quad	_GLOBAL__sub_I_test3.cpp
 	.ident	"clang version 10.0.0-4ubuntu1 "
 	.section	".note.GNU-stack","",@progbits
 	.addrsig
-	.addrsig_sym _GLOBAL__sub_I_test1.cpp
+	.addrsig_sym _GLOBAL__sub_I_test3.cpp
 	.addrsig_sym _ZStL8__ioinit
 	.addrsig_sym __dso_handle
 	.addrsig_sym _ZSt4cout
