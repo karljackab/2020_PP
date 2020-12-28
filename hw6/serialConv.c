@@ -1,6 +1,7 @@
 #include "serialConv.h"
 
-void serialConv(int filterWidth, float *filter, int imageHeight, int imageWidth, float *inputImage, float *outputImage)
+void serialConv(int filterWidth, float *filter, int imageHeight, int imageWidth, 
+                float *inputImage, float *outputImage)
 {
     // Iterate over the rows of the source image
     int halffilterSize = filterWidth / 2;
