@@ -84,7 +84,6 @@ switch(error){
 
 void error_exit(char *msg, cl_int err) {
     printf("ERROR: %s - %s\n", msg, getErrorString(err));
-    // std::cerr << "[Error] " << msg << " : " << err << "\n"; 
     exit(1);
 }
 
@@ -95,104 +94,52 @@ void hostFE(int filterWidth, float *filter, int imageHeight, int imageWidth,
     int filterSize = filterWidth * filterWidth;
     int imageSize = imageHeight * imageWidth;
 
-    FILE *f = fopen("./kernel.cl", "rb");
-    fseek(f, 0, SEEK_END);
-    long fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    char *source = (char*)malloc(fsize + 1);
-    fread(source, 1, fsize, f);
-    fclose(f);
-    source[fsize] = 0;
-
-    size_t source_len = strlen(source);
-
-    cl_platform_id platform_id;
-    cl_command_queue command_queue;
-    cl_mem args_inputImage, args_outputImage, args_filter;
-    // cl_mem args_img_data, args_R, args_G, args_B;
-    cl_kernel kern;
+    static int HAD_ALLOC = 0;
+    static cl_command_queue command_queue;
+    static cl_mem args_inputImage, args_outputImage, args_filter;
+    static cl_kernel kern;
     cl_int err_code;
 
-    size_t global_work_size = 2400; // :)
-    size_t local_work_size = 100;    // ??
-    unsigned int task_num = imageSize/global_work_size + (imageSize % global_work_size != 0);
+    size_t global_work_size = 20000;
+    size_t local_work_size = 500;
 
-    clGetPlatformIDs(1, &platform_id, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clGetPlatformIDs()", err_code);
+    if(!HAD_ALLOC){
+        command_queue = clCreateCommandQueueWithProperties(*context, *device, 0, &err_code);
+        if (err_code != CL_SUCCESS) error_exit("clCreateCommandQueueWithProperties()", err_code);
+        args_inputImage = clCreateBuffer(*context, CL_MEM_READ_ONLY, sizeof(float)*imageSize, NULL, &err_code);
+        if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
+        args_filter = clCreateBuffer(*context, CL_MEM_READ_ONLY, sizeof(float)*filterSize, NULL, &err_code);
+        if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
+        args_outputImage = clCreateBuffer(*context, CL_MEM_WRITE_ONLY, sizeof(float)*imageSize, NULL, &err_code);
+        if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
+        clEnqueueWriteBuffer(command_queue, args_inputImage, CL_TRUE, 0, sizeof(float)*imageSize, inputImage, 0, NULL, NULL);
+        if (err_code != CL_SUCCESS) error_exit("clEnqueueWriteBuffer()", err_code);
+        clEnqueueWriteBuffer(command_queue, args_filter, CL_TRUE, 0, sizeof(float)*filterSize, filter, 0, NULL, NULL);
+        if (err_code != CL_SUCCESS) error_exit("clEnqueueWriteBuffer()", err_code);
+        HAD_ALLOC = 1;
+        kern = clCreateKernel(*program, "convolution", &err_code);
+        if (err_code != CL_SUCCESS) error_exit("clCreateKernel()", err_code);
 
-    clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_GPU, 1, device, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clGetDeviceIDs()", err_code);
-
-    context = clCreateContext(NULL, 1, device, NULL, NULL, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateContext()", err_code);
-
-    command_queue = clCreateCommandQueueWithProperties(context, *device, 0, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateCommandQueueWithProperties()", err_code);
-
-    args_inputImage = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float)*imageSize, NULL, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
-    args_filter = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float)*filterSize, NULL, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
-    args_outputImage = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float)*imageSize, NULL, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateBuffer()", err_code);
-
-    clEnqueueWriteBuffer(command_queue, args_inputImage, CL_TRUE, 0, sizeof(float)*imageSize, inputImage, 0, NULL, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clEnqueueWriteBuffer()", err_code);
-    clEnqueueWriteBuffer(command_queue, args_filter, CL_TRUE, 0, sizeof(float)*filterSize, filter, 0, NULL, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clEnqueueWriteBuffer()", err_code);
-
-    *program = clCreateProgramWithSource(context, 1, &source, &source_len, &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateProgramWithSource()", err_code);
-
-    clBuildProgram(*program, 0, NULL, NULL, NULL, NULL);
-    // if (err_code != CL_SUCCESS) {
-    //     size_t len = 0;
-    //     cl_int err_build;
-    //     err_build = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
-    //     char *buffer = (char*)malloc(sizeof(char)*len);
-    //     err_build = clGetProgramBuildInfo(*program, *device, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);
-    //     dprintf(2, "%s", buffer);
-    //     free(buffer);
-    //     error_exit("clBuildProgram()", err_code);
-    // }
-    kern = clCreateKernel(*program, "convolution", &err_code);
-    // if (err_code != CL_SUCCESS) error_exit("clCreateKernel()", err_code);
-
-    // Pass Arguments
-    clSetKernelArg(kern, 0, sizeof(cl_mem), &args_inputImage);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
-    clSetKernelArg(kern, 1, sizeof(cl_mem), &args_outputImage);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
-    clSetKernelArg(kern, 2, sizeof(cl_mem), &args_filter);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
-    clSetKernelArg(kern, 3, sizeof(int), &filterWidth);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
-    clSetKernelArg(kern, 4, sizeof(int), &imageHeight);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
-    clSetKernelArg(kern, 5, sizeof(int), &imageWidth);
-    // if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        // Pass Arguments
+        clSetKernelArg(kern, 0, sizeof(cl_mem), &args_inputImage);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        clSetKernelArg(kern, 1, sizeof(cl_mem), &args_outputImage);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        clSetKernelArg(kern, 2, sizeof(cl_mem), &args_filter);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        clSetKernelArg(kern, 3, sizeof(int), &filterWidth);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        clSetKernelArg(kern, 4, sizeof(int), &imageHeight);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        clSetKernelArg(kern, 5, sizeof(int), &imageWidth);
+        if (err_code != CL_SUCCESS) error_exit("clSetKernelArg()", err_code);
+        
+    }
 
     clEnqueueNDRangeKernel(command_queue, kern, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clEnqueueNDRangeKernel()", err_code);
+    if (err_code != CL_SUCCESS) error_exit("clEnqueueNDRangeKernel()", err_code);
 
     // read data from device to host
     clEnqueueReadBuffer(command_queue, args_outputImage, CL_TRUE, 0, sizeof(float)*imageSize, outputImage, 0, NULL, NULL);
-    // if (err_code != CL_SUCCESS) error_exit("clEnqueueReadBuffer()", err_code);
-
-    // release
-    // clReleaseProgram(program);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseProgram()", err_code);
-    // clReleaseKernel(kern);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseKernel()", err_code);
-    // clReleaseCommandQueue(command_queue);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseCommandQueue()", err_code);
-    // clReleaseContext(context);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseContext()", err_code);
-    // clReleaseMemObject(args_inputImage);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseMemObject()", err_code);
-    // clReleaseMemObject(args_filter);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseMemObject()", err_code);
-    // clReleaseMemObject(args_outputImage);
-    // if (err_code != CL_SUCCESS) error_exit("clReleaseMemObject()", err_code);
+    if (err_code != CL_SUCCESS) error_exit("clEnqueueReadBuffer()", err_code);
 }

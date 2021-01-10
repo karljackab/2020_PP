@@ -12,31 +12,29 @@ __kernel void convolution(__global float *inputImage,
     float sum;
     int i = 0, j = global_id, k, l;
 
-    while(i < imageHeight){
-        while(j >= imageWidth){
-            j -= imageWidth;
-            i += 1;
-        }
-        if(i >= imageHeight)
-            break;
+    if(j >= imageWidth){
+        i += j/imageWidth;
+        j %= imageWidth;
+    }
 
+    int first_term, img_first_term;
+    while(i < imageHeight){
         sum = 0;
+
         // Apply the filter to the neighborhood
-        for (k = -halffilterSize; k <= halffilterSize; k++)
-        {
+        first_term = 0;
+        img_first_term = (i-halffilterSize)*imageWidth;
+        for (k = -halffilterSize; k <= halffilterSize; k++, first_term+=filterWidth, img_first_term+=imageWidth)
             for (l = -halffilterSize; l <= halffilterSize; l++)
-            {
-                if (i + k >= 0 && i + k < imageHeight &&
-                    j + l >= 0 && j + l < imageWidth)
-                {
-                    sum += inputImage[(i + k) * imageWidth + j + l] *
-                            filter[(k + halffilterSize) * filterWidth +
-                                    l + halffilterSize];
-                }
-            }
-        }
+                if ((i + k >= 0) && (i + k < imageHeight) && (j + l >= 0) && (j + l < imageWidth))
+                    sum += inputImage[img_first_term + j + l] * filter[first_term + l + halffilterSize];
+
         outputImage[i * imageWidth + j] = sum;
 
         j += global_size;
+        if(j >= imageWidth){
+            i += j/imageWidth;
+            j %= imageWidth;
+        }
     }
 }
